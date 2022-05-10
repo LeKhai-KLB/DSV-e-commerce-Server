@@ -4,9 +4,17 @@ import jwt from 'jsonwebtoken'
 import { Request, Response, NextFunction } from 'express'
 // import nodemailer from 'nodemailer'
 
-export const generateJWT = (userHeader: any) => {
+export interface IUserInfo {
+    id: string,
+    userName: string,
+    isAdmin: boolean,
+    email: string,
+    avartar?: string,
+}
+
+export const generateJWT = (userInfo: IUserInfo) => {
     return jwt.sign({
-        ...userHeader
+        ...userInfo
     }, process.env.SECRET_KEY || '', { expiresIn: '30d'})
 }
 

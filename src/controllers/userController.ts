@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import { generateJWT } from '../utils/authServices';
 import bcrypt from 'bcrypt'
 import { Response, Request } from 'express'
+import { IUserInfo } from '../utils/authServices'
 
 export const register = async (req: Request, res: Response) => {
     try{
@@ -13,7 +14,7 @@ export const register = async (req: Request, res: Response) => {
             hash_password: bcrypt.hashSync(req.body.password, 8),
             emailToken: crypto.randomBytes(64).toString('hex'),
         })
-        const responseInfo = {
+        const userInfo: IUserInfo = {
             id: newUser.id,
             userName: newUser.userName,
             isAdmin: newUser.isAdmin,
@@ -23,7 +24,7 @@ export const register = async (req: Request, res: Response) => {
 
         // await emailTransporter.sendMail(mailOptions(newUser.userName, newUser.email, newUser.emailToken))
 
-        return res.json({status: 200, resultData: {...responseInfo, jwt: generateJWT(responseInfo)}})
+        return res.json({status: 200, resultData: {...userInfo, jwt: generateJWT(userInfo)}})
     }
     catch(err: any){
         console.log(err)
@@ -36,14 +37,14 @@ export const login = async (req: Request, res: Response) => {
         const user = await User.findOne({email: req.body.email})
         if(user !== null) {
             if(bcrypt.compareSync(req.body.password, user.hash_password)){
-                const responseInfo = {
+                const userInfo: IUserInfo = {
                     id: user.id,
-                    userName: user.name,
+                    userName: user.userName,
                     isAdmin: user.isAdmin,
                     email: user.email,
                     avartar: user.avartar,
                 }
-                return res.json({status: 200, resultData: {...responseInfo, jwt: generateJWT(responseInfo)}})
+                return res.json({status: 200, resultData: {...userInfo, jwt: generateJWT(userInfo)}})
             }
         }
     }
