@@ -8,6 +8,7 @@ import * as http from 'http'
 
 import generalRouter from './routers/generalRouter'
 import productRouter from './routers/productRouter'
+import userRouter from './routers/userRouter'
 
 dotenv.config({path: '.env'})
 
@@ -15,11 +16,12 @@ const app = express()
 app.use(express.json())
 app.use('/api/general', generalRouter)
 app.use('/api/product', productRouter)
+app.use('/api/user', userRouter)
 app.use(cors())
 
 const server = new http.Server(app)
 
-mongoose.connect(process.env.MONGO_URL || '', {
+mongoose.connect(process.env.MONGO_URL as string, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 } as ConnectOptions)

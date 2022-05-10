@@ -5,30 +5,34 @@ import Category from '../models/Category'
 import Color from '../models/Color'
 import Brand from '../models/Brand'
 import { Request, Response } from 'express'
+import mongoose from 'mongoose';
 
 // ADD PRODUCT
 export const addProduct = async (req: Request, res: Response) => {
     try{
         const categories = req.body.categories
+        const categoriesId:Array<mongoose.Schema.Types.ObjectId> = []
         const colors = req.body.colors
         let brand = 'no brand'
         
         // handle categories
-        const categoryDocs = await Category.find().where('id').in(categories).select('id -_id')
+        const categoryDocs = await Category.find().where('name').in(categories).select('name')
             .collation({locale: 'vi', strength: 2})
         for(let i = 0; i < categories.length; i++) {
-            const checkIndex = categoryDocs.findIndex(c => c.id.toLowerCase() === categories[i].toLowerCase());
+            const checkIndex = categoryDocs.findIndex(c => c.name.toLowerCase() === categories[i].toLowerCase());
             if(checkIndex === -1){
                 const tree = categories.slice(0, i <= 2 ? i:2)
-                tree.unshift('root')
-                await Category.create({
-                    id: categories[i], 
-                    tree: tree,
+                tree.unshift('Root')
+                const name = categories[i]
+                const newCategory = await Category.create({
+                    name: name.charAt(0).toUpperCase() + name.slice(1), 
+                    tree: tree.map((t:any) => t.charAt(0).toUpperCase() + t.slice(1)),
                     parent: tree[i <= 1 ? i:2]
                 })
+                categoriesId.push(newCategory._id)
             }
             else{
-                categories[i] = categoryDocs[checkIndex].id
+                categoriesId.push(categoryDocs[checkIndex]._id)
             }
         }
 
@@ -49,23 +53,23 @@ export const addProduct = async (req: Request, res: Response) => {
         if(req.body?.brand){
             brand = req.body.brand
         }
-        const brandSearchResult = await Brand.findOne({brandName: brand}).collation({locale: 'vi', strength: 2})
+        const brandSearchResult = await Brand.findOne({name: brand}).collation({locale: 'vi', strength: 2})
         if(brandSearchResult === null){
             await Brand.create({
-                brandName: brand
+                name: brand
             })
         }
         else{
-            brand = brandSearchResult.brandName
+            brand = brandSearchResult.name
         }
         
         // add new product
-        const product = await Product.findOne({productName: req.body.productName})
+        const product = await Product.findOne({name: req.body.name})
             .collation({locale: 'vi', strength: 2})
         if(product === null){
             const newProduct = await Product.create({
                 ...req.body,
-                categories: categories.slice(2),
+                categories: categoriesId.slice(2),
                 brand: brand
             })
             return res.json({status: 200, resultData: newProduct})

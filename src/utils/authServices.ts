@@ -6,10 +6,7 @@ import { Request, Response, NextFunction } from 'express'
 
 export const generateJWT = (userHeader: any) => {
     return jwt.sign({
-        userName: userHeader.userName,
-        email: userHeader.email,
-        isAdmin: userHeader.isAdmin,
-        id: userHeader.id
+        ...userHeader
     }, process.env.SECRET_KEY || '', { expiresIn: '30d'})
 }
 
@@ -60,13 +57,33 @@ export const generateJWT = (userHeader: any) => {
 // }
 
 export const authenToken = (req: Request, res: Response, next: NextFunction) => {
-
-}
-
-export const isUser = (req: Request, res: Response, next: NextFunction) => {
-
+    const authorization = req.headers.authorization
+    if(authorization){
+        const token = authorization.split(' ')[1]
+        jwt.verify(
+            token, 
+            process.env.SECRET_KEY as string,
+            (err: any, data: any) => {
+                if(err){
+                    res.json({status: 404, errorMessage: err.message})
+                }
+                else{
+                    req.body.user = data
+                    next()
+                }
+            }
+        )
+    }
+    else{
+        res.json({status: 404, errorMessage: 'No token'})
+    }
 }
 
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
-
+    if(req.body?.user?.isAdmin){
+        next()
+    }
+    else{
+        res.json({status: 404, errorMessage: 'Invalid admin token'})
+    }
 }

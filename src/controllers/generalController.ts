@@ -6,7 +6,7 @@ import { Request, Response } from 'express'
 // ADD CATEGORY
 export const addCategory = async(req: Request, res: Response) => {
     try{
-        const category = await Category.findOne({id: req.body.id})
+        const category = await Category.findOne({name: req.body.name})
             .collation({locale: 'vi', strength: 2})
         if(category === null){
             const newCategory = await Category.create({...req.body})
@@ -23,9 +23,9 @@ export const addCategory = async(req: Request, res: Response) => {
 }
 
 export const testAuthorizationToken_user = (req: Request, res: Response) => {
-    return res.json({status: 200, resultData: {isAdmin: false}})
+    return res.json({status: 200, resultData: req.body})
 }
 
 export const testAuthorizationToken_admin = (req: Request, res: Response) => {
-    return res.json({status: 200, resultData: {isAdmin: true}})
+    return res.json({status: 200, resultData: req.body})
 }

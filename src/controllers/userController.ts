@@ -14,7 +14,7 @@ export const register = async (req: Request, res: Response) => {
             emailToken: crypto.randomBytes(64).toString('hex'),
         })
         const responseInfo = {
-            id: newUser.id as string,
+            id: newUser.id,
             userName: newUser.userName,
             isAdmin: newUser.isAdmin,
             email: newUser.email,

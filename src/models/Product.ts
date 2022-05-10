@@ -8,13 +8,13 @@ const ProductColorSchema = new mongoose.Schema({
 }, {timeStamp: false, _id: false} as SchemaOptions)
 
 const ProductSchema = new mongoose.Schema({
-    productName: {type: String, trim: true, required: true, unique: true},
+    name: {type: String, trim: true, required: true, unique: true},
     description: {type: String},
     images: [
         {type: String}
     ],
     categories: [
-        {type: String, required: true}
+        {type: mongoose.Schema.Types.ObjectId, required: true}
     ],
     brand: {type: String, default: 'no brand'},
     price: {type: Number, default: 0.00},
