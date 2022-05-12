@@ -10,12 +10,9 @@ import mongoose from 'mongoose';
 // ADD PRODUCT
 export const addProduct = async (req: Request, res: Response) => {
     try{
+        // handle categories
         const categories = req.body.categories
         const categoriesId:Array<mongoose.Schema.Types.ObjectId> = []
-        const colors = req.body.colors
-        let brand = 'no brand'
-        
-        // handle categories
         const categoryDocs = await Category.find().where('name').in(categories).select('name')
             .collation({locale: 'vi', strength: 2})
         for(let i = 0; i < categories.length; i++) {
@@ -37,30 +34,35 @@ export const addProduct = async (req: Request, res: Response) => {
         }
 
         // handle colors
+        const colors = req.body.colors
+        const colorsId:Array<mongoose.Schema.Types.ObjectId> = []
         const colorsTitle = colors.map((c: any) => c.title)
-        const colorDocs = await Color.find().where('title').in(colorsTitle).select('title -_id')
+        const colorDocs = await Color.find().where('title').in(colorsTitle).select('title')
         for(let i = 0; i < colors.length; i++){
             const checkIndex = colorDocs.findIndex(c => c.title === colors[i].title);
             if(checkIndex === -1){
-                await Color.create({
+                const newColor =  await Color.create({
                     title: colors[i].title,
                     value: colors[i].value
                 })
+                colorsId.push(newColor._id)
+            }
+            else{
+                colorsId.push(colorDocs[checkIndex]._id)
             }
         }
 
         // handles brand
-        if(req.body?.brand){
-            brand = req.body.brand
-        }
-        const brandSearchResult = await Brand.findOne({name: brand}).collation({locale: 'vi', strength: 2})
+        let brandId:mongoose.Schema.Types.ObjectId
+        const brandSearchResult = await Brand.findOne({name: req.body?.brand ? req.body.brand:'no brand'}).collation({locale: 'vi', strength: 2})
         if(brandSearchResult === null){
-            await Brand.create({
-                name: brand
+            const newBrand = await Brand.create({
+                name: req.body.brand
             })
+            brandId = newBrand._id
         }
         else{
-            brand = brandSearchResult.name
+            brandId = brandSearchResult._id
         }
         
         // add new product
@@ -70,7 +72,8 @@ export const addProduct = async (req: Request, res: Response) => {
             const newProduct = await Product.create({
                 ...req.body,
                 categories: categoriesId.slice(2),
-                brand: brand
+                brand: brandId,
+                colors: colorsId
             })
             return res.json({status: 200, resultData: newProduct})
         }
