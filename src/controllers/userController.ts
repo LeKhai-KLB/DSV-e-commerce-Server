@@ -46,6 +46,9 @@ export const login = async (req: Request, res: Response) => {
                 }
                 return res.json({status: 200, resultData: {...userInfo, jwt: generateJWT(userInfo)}})
             }
+            else {
+                return res.json({status: 404, errorMessage: 'not correct password'})
+            }
         }
     }
     catch(err: any){
