@@ -11,7 +11,7 @@ const ProductSchema = new mongoose.Schema({
     categories: [
         {type: mongoose.Schema.Types.ObjectId, required: true}
     ],
-    brand: {type: String, default: 'no brand'},
+    brand: {type: mongoose.Schema.Types.ObjectId, required: true},
     price: {type: Number, default: 0.00},
     colors: [
         {type: mongoose.Schema.Types.ObjectId, required: true}
