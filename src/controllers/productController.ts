@@ -54,10 +54,12 @@ export const addProduct = async (req: Request, res: Response) => {
 
         // handles brand
         let brandId:mongoose.Schema.Types.ObjectId
+
         const brandSearchResult = await Brand.findOne({name: req.body?.brand ? req.body.brand:'no brand'}).collation({locale: 'vi', strength: 2})
         if(brandSearchResult === null){
+            const name = req.body?.brand ? req.body.brand:'no brand'
             const newBrand = await Brand.create({
-                name: req.body.brand
+                name: name.charAt(0).toUpperCase() + name.slice(1)
             })
             brandId = newBrand._id
         }
