@@ -22,6 +22,31 @@ export const addCategory = async(req: Request, res: Response) => {
     }
 }
 
+
+
+// GET CATEGORY WITH TREE LENGTH
+export const getCategoriesByTreeLength = async (req: Request, res: Response) => {
+    try{
+        const length = req.query.length
+        const categories = await Category.find({tree: {$size: Number(length)}})
+        if(categories.length === 0){
+            throw new Error("Can't fint any categories with this length")
+        }
+        else{
+            const resultData:Array<any> = categories.map((c: any) => {
+                return {
+                    name: c.name,
+                    tree: c.tree,
+                    parent: c.parent
+                }
+            })
+            return res.json({status:200, resultData: resultData})
+        }
+    }catch(err: any) {
+        return res.json({status: 404, errorMessage: err.message})
+    }
+}
+
 export const testAuthorizationToken_user = (req: Request, res: Response) => {
     return res.json({status: 200, resultData: req.body})
 }
