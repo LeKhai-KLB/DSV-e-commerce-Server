@@ -10,6 +10,6 @@ const UserSchema = new mongoose.Schema({
     isVerified: {type: Boolean, default: false, required: true},
     emailToken: {type: String, required: true},
     avartar: {type: String},
-}, {timeStamp: true} as SchemaOptions );
+}, {timestamps: true} as SchemaOptions );
 
 export default mongoose.model("User", UserSchema)

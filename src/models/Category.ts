@@ -8,6 +8,6 @@ const CategorySchema = new mongoose.Schema({
         {type: String}
     ],
     parent: {type: String, required: true, caseSensitive: false}
-}, { timeStamp: false, collation: {locale: 'vi', strength: 2}} as SchemaOptions)
+}, { timestamps: false, collation: {locale: 'vi', strength: 2}} as SchemaOptions)
 
 export default mongoose.model('Category', CategorySchema)

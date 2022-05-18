@@ -15,6 +15,6 @@ const OrderSchema = new mongoose.Schema({
         }
     ],
     status: {type: String, default: 'pending'}
-}, {timeStamp: true} as SchemaOptions )
+}, {timestamps: true} as SchemaOptions )
 
 export default mongoose.model('Order', OrderSchema)
