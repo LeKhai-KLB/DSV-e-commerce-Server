@@ -12,6 +12,6 @@ const ReviewSchema = new mongoose.Schema({
             evaluate: {type: Number, default: 5}
         }
     ]
-}, {timeStamp: true} as SchemaOptions )
+}, {timestamps: true} as SchemaOptions )
 
 export default mongoose.model('Review', ReviewSchema)
