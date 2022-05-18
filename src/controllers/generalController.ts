@@ -1,6 +1,8 @@
 'use strict';
 
 import Category from '../models/Category'
+import Brand from '../models/Brand'
+import Color from '../models/Color'
 import { Request, Response } from 'express'
 
 // ADD CATEGORY
@@ -53,4 +55,24 @@ export const testAuthorizationToken_user = (req: Request, res: Response) => {
 
 export const testAuthorizationToken_admin = (req: Request, res: Response) => {
     return res.json({status: 200, resultData: req.body})
+}
+
+export const getAllBrands = async (req: Request, res: Response) => {
+    try{
+        const brands = await Brand.find()
+        return res.json({status: 200, resultData:brands})
+    }
+    catch (err: any) {
+        return res.json({status: 404, errorMessage:err.message})
+    }
+}
+
+export const getAllColors = async (req: Request, res: Response) => {
+    try{
+        const colors = await Color.find()
+        return res.json({status: 200, resultData:colors})
+    }
+    catch(err: any) {
+        return res.json({status: 404, errorMessage:err.message})
+    }
 }
