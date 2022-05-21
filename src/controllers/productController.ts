@@ -122,69 +122,150 @@ export const updateProduct = async (req: Request, res: Response) => {
     }
 }
 
-// GET PRODUCTS AND SORT BY A-Z
-export const getProducts_SortAtoZ = async (req: Request, res: Response) => {
-    try {
-        const { search, first, last } = req.query
-        const products = await Product.find({name: {$regex: new RegExp(`${search}`, 'gi')}})
-        .populate(['brand', 'colors', 'categories']).collation({locale: 'vi', caseLevel: true})
-        if(products.length === 0) {
-            return res.json({ status: 404, errorMessage: 'Can not find any products'})
-        }
-        else {
-            const temp = products.map(m => m.name)
-            return res.json({status: 200, resultData: {
-                products: products.slice(Number(first), Number(last) > products.length ? products.length: Number(last)),
-                remainingLength: products.length
-            }})
+// PASSING PRODUCT FILTER DATA
+export const passingProductFilterData = (req: Request, res: Response, next: NextFunction) => {
+    const {searchValue, category, size, color, brand, price, available, sortValue, slice} = req.body
+    let passingObject:any
+    if(searchValue) {
+        if(searchValue !== '') {
+            const regex = new RegExp(`${searchValue}`, 'gi')
+            passingObject = {'name': {$regex: regex}}
         }
     }
-    catch(err: any) {
-        // console.log(err)
+    else{
+        if(category) {
+            if(String(category).includes('All')) {
+                const splitCategory:Array<string> = String(category).split(' ')
+                passingObject = {'categories.parent': splitCategory[1]}
+            }
+            else {
+                passingObject = {'categories.name': category}
+            }
+        }
+        if(size) {
+            const tempKey:string = `inStock.${size}`
+            let tempObj: {[k:string]: any} = {}
+            tempObj[tempKey] = {'$gte': 1}
+            passingObject = {...passingObject, ...tempObj}
+        }
+        if(color) {
+            const colorTitle = {'colors.title': color} 
+            passingObject = {...passingObject, ...colorTitle}
+        }
+        if(brand) {
+            if(!String(brand).includes('All')) {
+                const brandName = {'brand.name': brand}
+                passingObject = {...passingObject, ...brandName}
+            }
+        }
+        if(price) {
+            const priceRange:Array<string> = String(price).split('-')
+            const tempPriceRange = {'price': {'$gte': Number(priceRange[0]), '$lte': Number(priceRange[1])}}
+            passingObject = {...passingObject, ...tempPriceRange}
+        }
+        if(available){
+            if(String(available) !== 'All') {
+                let val:object
+                if(available === 'In-store')
+                    val = {'$gte': 1}
+                else
+                    val = {'$lte': 0}
+                const queryByQuantity:Array<object> = [
+                    {
+                        'inStock.s': val
+                    },
+                    {
+                        'inStock.m': val
+                    },
+                    {
+                        'inStock.m': val
+                    },
+                ]
+                passingObject.$or = queryByQuantity
+            }
+        }
+    }
+    if(sortValue) {
+        const sortValueAsString = String(sortValue)
+        let newSortValue:any
+        if(sortValueAsString === 'Date added') {
+            newSortValue = {'_id': -1}
+        }
+        else if(sortValueAsString === 'A - Z') {
+            newSortValue = {'name': 1}
+        }
+        else {
+            newSortValue = {'name': -1}
+        }
+        passingObject = {...passingObject, sortValue: {...newSortValue}}
+    }
+    if(slice){
+        const sliceRange:Array<string> = String(slice).split('-')
+        const tempSlice = {'slice': {first: Number(sliceRange[0]), last: Number(sliceRange[1])}}
+        passingObject = {...passingObject, ...tempSlice}
+    }
+    req.body = passingObject
+    next()
+}
+
+// GET PRODUCTS BY FILTER AND SORT VALUE
+export const getProductsByFilterAndSortValue = async (req: Request, res: Response) => {
+    try {
+        const { sortValue, slice, ...filterData } = req.body
+        const products = await Product.aggregate()
+            .lookup({
+                from: 'categories',
+                localField: 'categories',
+                foreignField: '_id',
+                as: 'categories'
+            })
+            .lookup({
+                from: 'colors',
+                localField: 'colors',
+                foreignField: '_id',
+                as: 'colors'
+            })
+            .lookup({
+                from: 'brands',
+                localField: 'brand',
+                foreignField: '_id',
+                as: 'brand'
+            })
+            .match(filterData)
+            .sort(sortValue)
+            .group({
+                '_id': null,
+                'remainingLength': {$sum: 1},
+                'rootProducts': {'$push': '$$ROOT'}
+            })
+            .project({
+                '_id': 0,
+                'remainingLength': 1,
+                'products': {'$slice': ['$rootProducts', slice.first, slice.last]}
+            })
+
+        if(products.length > 0){
+            return res.json({status: 200, resultData: products[0]})
+        }  
+        else {
+            throw new Error('Could not find any products')
+        }
+    }
+    catch (err: any) {
+        // console.error(err)
         return res.json({status: 404, errorMessage: err.message})
     }
 }
 
-// GET PRODUCTS AND SORT BY Z-A
-export const getProducts_SortZtoA = async (req: Request, res: Response) => {
+// GET PRODUCTS BY ID
+export const getProductById = async (req: Request, res: Response) => {
     try {
-        const { search, first, last } = req.query
-        const products = await Product.find({name: {$regex: new RegExp(`${search}`, 'gi')}})
-        .populate(['brand', 'colors', 'categories']).collation({locale: 'vi', caseLevel: true})
-        if(products.length === 0) {
-            return res.json({ status: 404, errorMessage: 'Can not find any products'})
+        const product = await Product.findOne({_id: req.query.id}).populate(['brand', 'colors', 'categories'])
+        if(product) {
+            return res.json({status: 200, resultData: product})
         }
         else {
-            const newProducts = products.reverse().slice(Number(first), Number(last) > products.length ? products.length: Number(last))
-            return res.json({status: 200, resultData: {
-                products: newProducts,
-                remainingLength: products.length
-            }})
-        }
-    }
-    catch(err: any) {
-        // console.log(err)
-        return res.json({status: 404, errorMessage: err.message})
-    }
-}
-
-// GET ALL PRODUCTS AND SORT BY DATE ADDED
-export const getProducts_SortByDateAdded = async (req: Request, res: Response) => {
-    try {
-        const { search, first, last } = req.query
-        const products = await Product.find({name: {$regex: new RegExp(`${search}`, 'gi')}})
-            .sort({_id: -1})
-            .populate(['brand', 'colors', 'categories'])
-
-        if(products.length === 0) {
-            return res.json({ status: 404, errorMessage: 'Can not find any products'})
-        }
-        else {
-            const temp = products.map(m => m.name)
-            return res.json({status: 200, resultData: {
-                products: products.slice(Number(first), Number(last) > products.length ? products.length: Number(last)),
-                remainingLength: products.length
-            }})
+            throw new Error('Could not find product')
         }
     }
     catch(err: any) {
