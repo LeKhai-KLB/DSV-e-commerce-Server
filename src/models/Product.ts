@@ -20,6 +20,11 @@ const ProductSchema = new mongoose.Schema({
         s: {type: Number, default: 0},
         m: {type: Number, default: 0},
         l: {type: Number, default: 0},
+    },
+    inStock: {
+        s: {type: Number, default: 0},
+        m: {type: Number, default: 0},
+        l: {type: Number, default: 0},
     }
 }, {timestamps: {createAt: true}, collation: {locale: 'vi', strength: 2}} as SchemaOptions)
 
