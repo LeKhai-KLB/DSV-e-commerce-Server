@@ -1,22 +1,29 @@
 'use strict';
-
+import { authenToken, isAdmin } from '../utils/authServices'
 import { 
-passingProductData,
-addProduct, 
-updateProduct,
-deleteProduct,
-passingProductFilterData,
-getProductsByFilterAndSortValue,
-getProductById
+    addProduct, 
+    updateProduct,
+    deleteProduct,
+    getProductsByFilterAndSortValue,
+    getProductsByBrandId,
+    getProductsByNestedRootCategory,
+    getProductById
 } from "../controllers/productController";
+import {
+    passingProductData,
+    passingProductFilterData,
+} from '../utils/productServices'
+
 import express from "express";
 
 const productRouter = express.Router(); 
 
-productRouter.post('/admin/add', passingProductData, addProduct);
-productRouter.post('/admin/update', passingProductData, updateProduct);
-productRouter.post('/getProductsByFilterAndSortValue', passingProductFilterData, getProductsByFilterAndSortValue);
+productRouter.post('/admin/add', authenToken, isAdmin, passingProductData, addProduct);
+productRouter.post('/admin/update', authenToken, isAdmin, passingProductData, updateProduct);
+productRouter.get('/getProductsByFilterAndSortValue', passingProductFilterData, getProductsByFilterAndSortValue);
 productRouter.get('/getProductById', getProductById);
-productRouter.post('/admin/delete', deleteProduct);
+productRouter.get('/getProductsByBrandId', getProductsByBrandId);
+productRouter.get('/getProductsByNestedRootCategory', getProductsByNestedRootCategory);
+productRouter.post('/admin/delete',authenToken, isAdmin, deleteProduct);
 
 export default productRouter
