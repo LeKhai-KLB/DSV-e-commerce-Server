@@ -5,9 +5,9 @@ import mongoose, { SchemaOptions } from 'mongoose';
 const CategorySchema = new mongoose.Schema({
     name: {type: String, required: true, unique: true},
     tree: [
-        {type: String}
-    ],
-    parent: {type: String, required: true, caseSensitive: false}
+        {type: mongoose.Schema.Types.ObjectId, required: true}
+    ],   
+    parent:{type: mongoose.Schema.Types.ObjectId, required: true}
 }, { timestamps: false, collation: {locale: 'vi', strength: 2}} as SchemaOptions)
 
 export default mongoose.model('Category', CategorySchema)
