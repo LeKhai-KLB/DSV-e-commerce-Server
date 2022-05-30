@@ -9,6 +9,7 @@ import * as http from 'http'
 import generalRouter from './routers/generalRouter'
 import productRouter from './routers/productRouter'
 import userRouter from './routers/userRouter'
+import orderRouter from './routers/orderRouter'
 
 dotenv.config({path: '.env'})
 
@@ -18,6 +19,7 @@ app.use(express.json())
 app.use('/api/general', generalRouter)
 app.use('/api/product', productRouter)
 app.use('/api/user', userRouter)
+app.use('/api/order', orderRouter)
 
 const server = new http.Server(app)
 
