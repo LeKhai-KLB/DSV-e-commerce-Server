@@ -6,6 +6,7 @@ import {
     testAuthorizationToken_admin, 
     getCategoriesByTreeLength, 
     getCategoriesPassByParent,
+    getCategoryPathByIdList,
     getAllBrands,
     getAllBrandPassByCategory,
     getAllColors
@@ -20,6 +21,7 @@ generalRouter.get('/testAuthorizationToken_user', authenToken, testAuthorization
 generalRouter.get('/testAuthorizationToken_admin', authenToken, isAdmin, testAuthorizationToken_admin)
 generalRouter.get('/getCategoriesByTreeLength', getCategoriesByTreeLength)
 generalRouter.get('/getCategoriesPassByParent', getCategoriesPassByParent)
+generalRouter.get('/getCategoryPathByIdList', getCategoryPathByIdList)
 generalRouter.get('/getAllBrands', getAllBrands)
 generalRouter.get('/getAllBrandPassByCategory', getAllBrandPassByCategory)
 generalRouter.get('/getAllColors', getAllColors)
