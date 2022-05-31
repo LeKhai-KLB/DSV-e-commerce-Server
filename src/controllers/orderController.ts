@@ -109,7 +109,7 @@ export const getOrdersByFilter = async (req: Request, res: Response) => {
             throw new Error(`Can't find any order`)
     }   
     catch(err: any) {
-        console.error(err)
+        // console.error(err)
         return res.json({status: 404, errorMessage: err.message})
     }
 }
@@ -118,11 +118,11 @@ export const getOrdersByFilter = async (req: Request, res: Response) => {
 export const setStatus = async (req: Request, res: Response) => {
     try {
         const objId = new mongoose.Types.ObjectId(String(req.body.id))
-        await Order.findOneAndUpdate({_id: objId}, {
+        const result = await Order.findOneAndUpdate({_id: objId}, {
             'status.state': Number(req.body.state),
             'status.title': String(req.body.title)
-        })
-        return res.json({status: 200})
+        }, {new: true})
+        return res.json({status: 200, resultData: {state: result.status.state, title: result.status.title}})
     }
     catch(err: any) {
         return res.json({status: 404, errorMessage: err.message})
