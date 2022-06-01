@@ -1,11 +1,9 @@
 'use strict';
 
 import Product from '../models/Product'
-import Category from '../models/Category'
-import Color from '../models/Color'
-import Brand from '../models/Brand'
 import Review from '../models/Review'
-import { Request, Response, NextFunction } from 'express'
+import { deleteImage } from '../utils/firebaseServices';
+import { Request, Response } from 'express'
 import mongoose from 'mongoose';
 
 // ADD PRODUCT
@@ -191,7 +189,11 @@ export const deleteProduct = async (req: Request, res: Response) => {
     try{
         const {id} = req.body
         await Review.deleteOne({productId: id})
-        await Product.deleteOne({_id: id})
+        const product = await Product.findOneAndDelete({_id: id})
+        if(product.images.length !== 0) {
+            await Promise.all(product.images.map((image:string) => deleteImage(image)))
+                .then(() => {console.log('oke')})
+        }
         return res.json({status: 200})
     }
     catch (err: any) {

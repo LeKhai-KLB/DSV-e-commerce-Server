@@ -1,42 +1,59 @@
 'use strict';
 
-import Product from '../models/Product'
-import Category from '../models/Category'
-import Color from '../models/Color'
 import Brand from '../models/Brand'
 import Review from '../models/Review'
 import { Request, Response, NextFunction } from 'express'
+import { deleteManyImages } from './firebaseServices';
 import mongoose from 'mongoose';
 
 // PASSING PRODUCT DATA
 export const passingProductData = async (req: Request, res: Response,next: NextFunction) => {
     try{
-        const {previousQuantity, ...data} = req.body
+        const {previousQuantity, previousImages, ...data} = req.body
 
         // handle update inStock
         if(previousQuantity) {
-            for(const key in req.body.quantity) {
-                if(req.body.quantity[key] > previousQuantity[key])
-                    req.body.inStock[key] += (req.body.quantity[key] - previousQuantity[key])
+            for(const key in data.quantity) {
+                if(data.quantity[key] > previousQuantity[key])
+                    data.inStock[key] += (data.quantity[key] - previousQuantity[key])
                 else {
-                    req.body.inStock[key] = req.body.quantity[key]
+                    data.inStock[key] = data.quantity[key]
                 } 
+            }
+        }
+
+        // handle images
+        if(previousImages) {
+            if(data.images.length !== 0) {
+                const desertImages:Array<string> = []
+                previousImages.forEach((img:any) => {
+                    if(data.images.findIndex((d:any) => d === img) === -1) 
+                        desertImages.push(String(img))
+                }) 
+                if(desertImages.length !== 0)
+                    await deleteManyImages(desertImages)
             }
         }
 
         // handles brand
         let brandId:mongoose.Types.ObjectId
-        if (!req.body.brand.match(/^[0-9a-fA-F]{24}$/)) {
-            const name = req.body?.brand ? req.body.brand:'no brand'
-            const newBrand = await Brand.create({
-                name: name[0].toUpperCase() + name.slice(1)
-            })
-            brandId = newBrand._id
+        if(data.brand) {
+            if (!data.brand.match(/^[0-9a-fA-F]{24}$/)) {
+                const name = data?.brand ? data.brand:'no brand'
+                const newBrand = await Brand.create({
+                    name: name[0].toUpperCase() + name.slice(1)
+                })
+                brandId = newBrand._id
+            }
+            else {
+                brandId = new mongoose.Types.ObjectId(data.brand)
+            }
         }
         else {
-            brandId = new mongoose.Types.ObjectId(req.body.brand)
+            const noBrand = await Brand.findOne({name: 'No brand'})
+            brandId = noBrand._id
         }
-
+        
         // add new product
         req.body = {
             ...data,
@@ -45,7 +62,7 @@ export const passingProductData = async (req: Request, res: Response,next: NextF
         next()
     }
     catch(err: any){
-        console.log(err)
+        //console.log(err)
         return res.json({status: 404, errorMessage: err.message})
     }
 }
