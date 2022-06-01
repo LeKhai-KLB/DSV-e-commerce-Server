@@ -9,7 +9,7 @@ const UserSchema = new mongoose.Schema({
     isAdmin: {type: Boolean, default: false, required: true}, 
     isVerified: {type: Boolean, default: false, required: true},
     emailToken: {type: String, required: true},
-    avartar: {type: String},
+    avatar: {type: String},
 }, {timestamps: true} as SchemaOptions );
 
 export default mongoose.model("User", UserSchema)
