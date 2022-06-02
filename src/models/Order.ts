@@ -3,7 +3,7 @@
 import mongoose, { Schema, SchemaOptions } from 'mongoose';
 
 const OrderSchema = new mongoose.Schema({
-    custommer: {type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User'},
+    customer: {type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User'},
     cart: [
         {
             product: {type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Product'},
