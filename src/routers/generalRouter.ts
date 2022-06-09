@@ -1,29 +1,30 @@
 'use strict';
 
 import { 
-    addCategory, 
-    testAuthorizationToken_user, 
-    testAuthorizationToken_admin, 
+    addCategory,  
     getCategoriesByTreeLength, 
     getCategoriesPassByParent,
     getCategoryPathByIdList,
     getAllBrands,
     getAllBrandPassByCategory,
-    getAllColors
+    getAllColors,
+    clearRedis,
+    getAllRedisKeys
 } from '../controllers/generalController'
 import express from 'express'
 import { authenToken, isAdmin } from '../utils/authServices';
 
 const generalRouter = express.Router()
 
-generalRouter.post('/addCategory', addCategory)
-generalRouter.get('/testAuthorizationToken_user', authenToken, testAuthorizationToken_user)
-generalRouter.get('/testAuthorizationToken_admin', authenToken, isAdmin, testAuthorizationToken_admin)
+generalRouter.post('/addCategory',authenToken, isAdmin, addCategory)
 generalRouter.get('/getCategoriesByTreeLength', getCategoriesByTreeLength)
 generalRouter.get('/getCategoriesPassByParent', getCategoriesPassByParent)
 generalRouter.get('/getCategoryPathByIdList', getCategoryPathByIdList)
 generalRouter.get('/getAllBrands', getAllBrands)
 generalRouter.get('/getAllBrandPassByCategory', getAllBrandPassByCategory)
 generalRouter.get('/getAllColors', getAllColors)
+
+generalRouter.get('/clearRedis', clearRedis)
+generalRouter.get('/getAllRedisKeys', getAllRedisKeys)
 
 export default generalRouter

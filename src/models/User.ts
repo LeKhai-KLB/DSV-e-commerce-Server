@@ -8,7 +8,6 @@ const UserSchema = new mongoose.Schema({
     hash_password: {type: String, required: true},
     isAdmin: {type: Boolean, default: false, required: true}, 
     isVerified: {type: Boolean, default: false, required: true},
-    emailToken: {type: String, required: true},
     avatar: {type: String},
 }, {timestamps: true} as SchemaOptions );
 

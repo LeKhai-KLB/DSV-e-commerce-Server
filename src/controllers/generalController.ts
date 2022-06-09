@@ -6,19 +6,49 @@ import Color from '../models/Color'
 import Product from '../models/Product'
 import mongoose from 'mongoose'
 import { Request, Response } from 'express'
+import redisClient from '../connections/redis'
 
 // ADD CATEGORY
 export const addCategory = async(req: Request, res: Response) => {
     try{
-        const category = await Category.findOne({name: req.body.name})
-            .collation({locale: 'vi', strength: 2})
-        if(category === null){
-            const newCategory = await Category.create({...req.body})
-            return res.json({status: 200, resultData: newCategory})
-        }
-        else{
-            throw new Error('dupplicate category id')
-        }
+        const promise = new Promise (async(resolve, reject) => {
+            const categoryList = req.body.list.split('_');
+            const root = await Category.findOne({name: 'root'})
+            const newCategoryList = [root._id]
+            for await (const value of categoryList) {
+                const index = categoryList.findIndex((c:any) => c === value)
+                if (value.match(/^[0-9a-fA-F]{24}$/)) {
+                    const category = await Category.findOne({id: value})
+                    if(category) {
+                        const objId = new mongoose.Types.ObjectId(value)
+                        newCategoryList.push(objId)
+                    }
+                    else {
+                        reject("can't find current category")
+                    }
+                }
+                else {
+                    const newCategory = await Category.create({
+                        name: value,
+                        tree: newCategoryList.slice(0, index + 1),
+                        parent: newCategoryList[index]
+                    })
+                    newCategoryList.push(newCategory._id)
+                    if(index === categoryList.length - 1) {
+                        console.log(newCategory)
+                        resolve({
+                            _id: newCategory._id,
+                            name: newCategory.name
+                        })
+                    }
+                }
+            }
+        })
+
+        promise.then(data => {
+            return res.json({status: 200, resultData: data})
+        })
+        .catch((err: any) => {throw new Error(err)})
     }
     catch(err: any){
         console.log(err.message)
@@ -65,7 +95,11 @@ export const getCategoryPathByIdList = async (req: Request, res: Response) => {
         const newObjIdList:any = queryString.split('-').map(q => new mongoose.Types.ObjectId(q))
         const categories = await Category.find({_id: {$in: [...newObjIdList]}})
         if(categories.length !== 0) {
-            const path = categories.map(c => c.name).join(' / ')
+            const path = categories
+                .sort((a, b) => {
+                    return a.tree.length - b.tree.length
+                })
+                .map(c => c.name).join(' / ')
             return res.json({status: 200, resultData: path})
         }
         else 
@@ -149,3 +183,28 @@ export const getAllBrandPassByCategory = async (req: Request, res: Response) => 
         return res.json({status: 404, errorMessage:err.message})
     }
 } 
+
+// CLEAR ALL KEY REDIS
+export const clearRedis = async (req: Request, res: Response) => {
+    try {
+        const temp = await redisClient.keys('*')
+        await redisClient.flushAll()
+        return res.json({status: 200, resultData: temp})
+    }
+    catch(err: any) {
+        console.log(err.message)
+        return res.json({status: 404, errorMessage: err.message})
+    }
+}
+
+// GET ALL REDIS KEYS 
+export const getAllRedisKeys = async (req: Request, res: Response) => {
+    try {
+        const temp = await redisClient.keys('*')
+        return res.json({status: 200, resultData: temp})
+    }
+    catch(err: any) {
+        console.log(err.message)
+        return res.json({status: 404, errorMessage: err.message})
+    }
+}

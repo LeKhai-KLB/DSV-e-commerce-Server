@@ -1,6 +1,7 @@
 'use strict';
 
 import Order from '../models/Order'
+import User from '../models/User'
 import Product from '../models/Product'
 import Color from '../models/Color'
 import mongoose from 'mongoose'
@@ -8,6 +9,7 @@ import { Request, Response } from 'express';
 
 // ADD ORDER
 export const addOrder = async (req: Request, res: Response) => {
+
     const cart = req.body.cart.map((r:any) => {
         return {
             ...r,
@@ -19,6 +21,15 @@ export const addOrder = async (req: Request, res: Response) => {
         }
     })
     try {
+
+        const user = await User.findOne({_id: req.body.customer})
+        if(!user) {
+            throw new Error("Can't find user")
+        }
+        if(!user.isVerified) {
+            throw new Error("Your account is not verified")
+        }
+
         await Promise.all(
             cart.map(async (c:any, index: number) => {
                 const product = await Product.findOne({_id: c.product})
@@ -42,7 +53,7 @@ export const addOrder = async (req: Request, res: Response) => {
                 }
             })
         )
-        await Order.create({cart: [...cart], custommer: new mongoose.Types.ObjectId(req.body.custommer)})
+        await Order.create({cart: [...cart], customer: new mongoose.Types.ObjectId(req.body.customer)})
         return res.json({status: 200})
     }
     catch(err: any) {
@@ -75,7 +86,7 @@ export const getOrdersByFilter = async (req: Request, res: Response) => {
         const {slice, ...filterValues} = passingObject
         const orders = await Order.find(filterValues)
             .populate([{
-                path: 'custommer',
+                path: 'customer',
                 model: 'User',
                 select: '_id, userName'
             },
@@ -96,8 +107,8 @@ export const getOrdersByFilter = async (req: Request, res: Response) => {
             if(searchValue) {
                 if(searchValue !== '')
                     return o._id.toString().includes(String(searchValue)) 
-                    || o.custommer.userName.toLowerCase().includes(String(searchValue).toLowerCase())
-                    || o.custommer._id.toString().includes(String(searchValue))
+                    || o.customer.userName.toLowerCase().includes(String(searchValue).toLowerCase())
+                    || o.customer._id.toString().includes(String(searchValue))
             }
             return o
         })
