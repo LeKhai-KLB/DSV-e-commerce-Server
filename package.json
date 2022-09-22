@@ -9,9 +9,9 @@
     "start": "tsc && nodemon ./build/index.js"
   },
   "devDependencies": {
-    "dotenv": "^16.0.0",
+    "dotenv": "^16.0.2",
     "express": "^4.18.1",
-    "nodemon": "^2.0.16"
+    "nodemon": "^2.0.20"
   },
   "dependencies": {
     "@types/bcrypt": "^5.0.0",
