@@ -1,141 +1,167 @@
-'use strict';
+"use strict";
 
-import Order from '../models/Order'
-import User from '../models/User'
-import Product from '../models/Product'
-import Color from '../models/Color'
-import mongoose from 'mongoose'
-import { Request, Response } from 'express';
+import Order from "../models/Order";
+import User from "../models/User";
+import Product from "../models/Product";
+import Color from "../models/Color";
+import mongoose from "mongoose";
+import { Request, Response } from "express";
 
+type TSize = "s" | "m" | "l";
 // ADD ORDER
 export const addOrder = async (req: Request, res: Response) => {
-
-    const cart = req.body.cart.map((r:any) => {
-        return {
-            ...r,
-            product: new mongoose.Types.ObjectId(r.product),
-            options: {
-                ...r.options,
-                color: new mongoose.Types.ObjectId(r.options.color)
-            }
-        }
-    })
-    try {
-
-        const user = await User.findOne({_id: req.body.customer})
-        if(!user) {
-            throw new Error("Can't find user")
-        }
-        if(!user.isVerified) {
-            throw new Error("Your account is not verified")
-        }
-
-        await Promise.all(
-            cart.map(async (c:any, index: number) => {
-                const product = await Product.findOne({_id: c.product})
-                const colorResult = await Color.findOne({_id: c.options.color}).select('title')
-                if(product) {
-                    if(product.inStock[c.options.size] < c.options.quantity)
-                        throw new Error(`${product.name} with options: 
-                            (size: ${c.options.size}, color: ${colorResult.title}, quantity: ${c.options.quantity}) is out of stock 
-                            (${product.inStock[c.options.size]})
-                        `)
-                    else if(product.colors.findIndex((p:any) => p.toString() === colorResult._id.toString()) === -1) {
-                        throw new Error(`${product.name} is not included this color ${colorResult.title}`)
-                    }
-                    else {
-                        product.inStock[c.options.size] -= c.options.quantity
-                        await product.save()
-                    }
-                }
-                else {
-                    throw new Error(`Can't find the product ${index} in your cart`)
-                }
-            })
-        )
-        await Order.create({cart: [...cart], customer: new mongoose.Types.ObjectId(req.body.customer)})
-        return res.json({status: 200})
+  const cart = req.body.cart.map((r: any) => {
+    return {
+      ...r,
+      product: new mongoose.Types.ObjectId(r.product),
+      options: {
+        ...r.options,
+        color: new mongoose.Types.ObjectId(r.options.color),
+      },
+    };
+  });
+  try {
+    const user = await User.findOne({ _id: req.body.customer });
+    if (!user) {
+      throw new Error("Can't find user");
     }
-    catch(err: any) {
-        // console.log(err)
-        return res.json({status: 404, errorMessage: err.message})
+    if (!user.isVerified) {
+      throw new Error("Your account is not verified");
     }
-}
+
+    await Promise.all(
+      cart.map(async (c: any | unknown, index: number) => {
+        const product = await Product.findOne({ _id: c.product });
+        const colorResult = await Color.findOne({
+          _id: c.options.color,
+        }).select("title");
+        if (product) {
+          if (
+            product.inStock[c.options.size as TSize] &&
+            product.inStock[c.options.size as TSize] < c.options.quantity
+          )
+            throw new Error(`${product.name} with options: 
+                            (size: ${c.options.size}, color: ${
+              colorResult.title
+            }, quantity: ${c.options.quantity}) is out of stock 
+                            (${product.inStock[c.options.size as TSize]})
+                        `);
+          else if (
+            product.colors.findIndex(
+              (p: any) => p.toString() === colorResult._id.toString()
+            ) === -1
+          ) {
+            throw new Error(
+              `${product.name} is not included this color ${colorResult.title}`
+            );
+          } else {
+            product.inStock[c.options.size as TSize] =
+              <number>product.inStock[c.options.size as TSize] -
+              c.options.quantity;
+            await product.save();
+          }
+        } else {
+          throw new Error(`Can't find the product ${index} in your cart`);
+        }
+      })
+    );
+    await Order.create({
+      cart: [...cart],
+      customer: new mongoose.Types.ObjectId(req.body.customer),
+    });
+    return res.json({ status: 200 });
+  } catch (err: any) {
+    // console.log(err)
+    return res.json({ status: 404, errorMessage: err.message });
+  }
+};
 
 // GET ORDERS BY FILTER
 export const getOrdersByFilter = async (req: Request, res: Response) => {
-    try {
-        const {dateRange, searchValue, page, limit} = req.query
-        let passingObject:any
-        if(dateRange) {
-            const newDateRange:Array<string> = String(dateRange).split('-')
-            passingObject = {
-                createdAt: {
-                    $gte: new Date(Number(newDateRange[0])),
-                    $lte: new Date(Number(newDateRange[1]))
-                }
-            }
-        }
-        if(page && limit) {
-            const first = Number(page) * Number(limit) - Number(limit)
-            const last = first + Number(limit)
-            const tempSlice = {'slice': {start: first, limit: last}}
-            passingObject = {...passingObject, ...tempSlice}
-        }
-
-        const {slice, ...filterValues} = passingObject
-        const orders = await Order.find(filterValues)
-            .populate([{
-                path: 'customer',
-                model: 'User',
-                select: '_id, userName'
-            },
-            {
-                path: 'cart.product',
-                model: 'Product',
-                select: '_id, name'
-            },
-            {
-                path: 'cart.options.color',
-                model: 'Color',
-                select: 'title'
-            }
-            ])
-            .sort({_id: -1})
-
-        const newOrder = orders.filter(o => {
-            if(searchValue) {
-                if(searchValue !== '')
-                    return o._id.toString().includes(String(searchValue)) 
-                    || o.customer.userName.toLowerCase().includes(String(searchValue).toLowerCase())
-                    || o.customer._id.toString().includes(String(searchValue))
-            }
-            return o
-        })
-
-        if(newOrder && newOrder.length !== 0) {
-            return res.json({status: 200, resultData: {orders: newOrder.slice(slice.start, slice.limit), remainingLength: newOrder.length}})
-        }
-        else 
-            throw new Error(`Can't find any order`)
-    }   
-    catch(err: any) {
-        // console.error(err)
-        return res.json({status: 404, errorMessage: err.message})
+  try {
+    const { dateRange, searchValue, page, limit } = req.query;
+    let passingObject: any;
+    if (dateRange) {
+      const newDateRange: Array<string> = String(dateRange).split("-");
+      passingObject = {
+        createdAt: {
+          $gte: new Date(Number(newDateRange[0])),
+          $lte: new Date(Number(newDateRange[1])),
+        },
+      };
     }
-}
+    if (page && limit) {
+      const first = Number(page) * Number(limit) - Number(limit);
+      const last = first + Number(limit);
+      const tempSlice = { slice: { start: first, limit: last } };
+      passingObject = { ...passingObject, ...tempSlice };
+    }
 
-// SET STATUS 
+    const { slice, ...filterValues } = passingObject;
+    const orders = await Order.find(filterValues)
+      .populate([
+        {
+          path: "customer",
+          model: "User",
+          select: "_id, userName",
+        },
+        {
+          path: "cart.product",
+          model: "Product",
+          select: "_id, name",
+        },
+        {
+          path: "cart.options.color",
+          model: "Color",
+          select: "title",
+        },
+      ])
+      .sort({ _id: -1 });
+
+    const newOrder = orders.filter((o) => {
+      if (searchValue) {
+        if (searchValue !== "")
+          return (
+            o._id.toString().includes(String(searchValue)) ||
+            // || o.customer.userName.toLowerCase().includes(String(searchValue).toLowerCase())
+            String(o.customer._id).includes(String(searchValue))
+          );
+      }
+      return o;
+    });
+
+    if (newOrder && newOrder.length !== 0) {
+      return res.json({
+        status: 200,
+        resultData: {
+          orders: newOrder.slice(slice.start, slice.limit),
+          remainingLength: newOrder.length,
+        },
+      });
+    } else throw new Error(`Can't find any order`);
+  } catch (err: any) {
+    // console.error(err)
+    return res.json({ status: 404, errorMessage: err.message });
+  }
+};
+
+// SET STATUS
 export const setStatus = async (req: Request, res: Response) => {
-    try {
-        const objId = new mongoose.Types.ObjectId(String(req.body.id))
-        const result = await Order.findOneAndUpdate({_id: objId}, {
-            'status.state': Number(req.body.state),
-            'status.title': String(req.body.title)
-        }, {new: true})
-        return res.json({status: 200, resultData: {state: result.status.state, title: result.status.title}})
-    }
-    catch(err: any) {
-        return res.json({status: 404, errorMessage: err.message})
-    }
-}
+  try {
+    const objId = new mongoose.Types.ObjectId(String(req.body.id));
+    const result = await Order.findOneAndUpdate(
+      { _id: objId },
+      {
+        "status.state": Number(req.body.state),
+        "status.title": String(req.body.title),
+      },
+      { new: true }
+    );
+    return res.json({
+      status: 200,
+      resultData: { state: result.status.state, title: result.status.title },
+    });
+  } catch (err: any) {
+    return res.json({ status: 404, errorMessage: err.message });
+  }
+};
